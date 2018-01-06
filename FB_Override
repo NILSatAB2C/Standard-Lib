@@ -1,0 +1,63 @@
+UDT_OverrideHMI
+xButPlus	:BOOL;
+xButMinus	:Bool;
+sintPercent	:SINT:=50;
+sintMin	:SINT;
+sintMax	:SINT;
+
+FB_Override
+VAR_INPUT
+I_xPlus			:BOOL;
+I_xMinus		:BOOL;
+I_sintMIN		:SINT:=10;
+I_sintMAX		:SINT:=100;
+END_VAR
+
+VAR_OUTPUT
+Q_sintOverride	:SINT;
+Q_rOverrideFactor	:REAL;
+END_VAR
+
+VAR
+hmi			:UDT_OverrideHMI;
+xButPlus		:Bool;
+xButMinus		:Bool;
+sintPercent		:SInt;
+TrigPlus		:R_TRIG;
+TrigMinus		:R_TRIG;
+END_VAR
+
+
+(*
+Version: 1.1
+Author: N. Carstensen
+Company: AB2C GmbH
+Function:
+This FB produces a Speed override value for the machine as
+a factor and a percent number between I_sintMIN ad I_sintMAX.
+hmi variables included.
+
+History:
+8.11.17-FB Created. NC
+5.12.17-Copy Limits to HMI. HMI-UDT extended.
+*)
+
+TrigPlus(CLK := hmi.xButPlus OR I_xPlus);
+IF TrigPlus.Q THEN
+    hmi.sintPercent := hmi.sintPercent + 5;
+END_IF;
+
+TrigMinus(CLK := hmi.xButMinus OR I_xMinus);
+IF TrigMinus.Q THEN
+    hmi.sintPercent := hmi.sintPercent - 5;
+END_IF;
+
+hmi.sintPercent := LIMIT(I_sintMIN, hmi.sintPercent, I_sintMAX); (*min, Input, max*)
+Q_sintOverride := hmi.sintPercent;
+
+(*percent to factor*)
+Q_rOverrideFactor := SINT_TO_REAL(Q_sintOverride) / 100.0;
+
+(*Limits to HMI*)
+hmi.sintMin:=I_sintMIN;
+hmi.sintMax:=I_sintMAX;
