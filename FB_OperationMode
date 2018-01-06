@@ -1,0 +1,199 @@
+VAR_INPUT
+I_xStart	:BOOL;
+I_xStop	:Bool;
+I_xReset	:Bool;
+I_xKillModes	:Bool;
+I_xAutoHold	:Bool;
+I_xAutoReady	:Bool;
+I_xInHomePos	:Bool;
+I_tResetTime	:TIME :=T#1S ;
+
+END_VAR
+VAR_OUTPUT
+	OpMode	:UDT_OpMode;
+END_VAR
+VAR
+hmi		:UDT_OpModeHMI;
+bMode		:USInt;	
+TOF_Reset	:TOF;
+R_TRIG_Reset:R_TRIG;
+RTRIG_Stop	:R_TRIG;
+RTRIG_Start :R_TRIG;
+END_VAR
+
+
+4.2.2.	Code
+zurück
+
+
+(*
+Version: 1.1
+Author: N. Carstensen
+Company: AB2C GmbH
+Function:
+This FB manages the Operation Modes of a Random Machine.
+There are 4 modes
+All Modes have 2 States (except Hand Mode) Selected and Active
+Hand Mode is always active, when selected.
+The Signal Hold is to pause the active automatic signal as long as Hold is TRUE.
+0=No Mode, 
+10=Hand Selected/Active, 
+20=Semi Selected, 
+21=Semi Active, 
+30=Auto Selected, 
+31=Auto Active, 
+32= Auto Hold
+40=Homing Selected, 
+41=Homing Active
+
+History:
+8.11.17-FB Created. NC
+5.12.17-Auto Hold got an own mode number (32)
+*)
+
+
+(*Reset impuls from HMI or Input-Variable xReset*)
+R_TRIG_Reset(CLK := I_xReset OR hmi.xButReset);
+TOF_Reset(IN := R_TRIG_Reset.Q,
+           PT := I_tResetTime);
+OpMode.xReset := TOF_Reset.Q;
+
+
+
+(*Start Buttons*)
+RTRIG_Start(CLK := I_xStart OR hmi.xButStartAuto);
+
+(*Stop Buttons*)
+RTRIG_Stop(CLK := I_xStop OR hmi.xButStopAuto);
+
+
+(*Mode Selection*)
+hmi.bOperationMode := bMode; (*Mode Number to HMI*)
+
+(*Kill MOodes*)
+IF I_xKillModes THEN
+    bMode := 0;
+END_IF;
+
+CASE bMode OF
+(*No Mode*)
+    0:
+        IF hmi.xButSelectHand THEN
+            bMode := 10;
+        ELSIF hmi.xButSelectSemi THEN
+            bMode := 20;
+        ELSIF hmi.xButSelectAuto THEN
+            bMode := 30;
+        ELSIF hmi.xButSelectHoming THEN
+            bMode := 40;
+        END_IF;
+(*Hand Mode*)
+    10:
+        IF hmi.xButSelectSemi THEN
+            bMode := 20;
+        ELSIF hmi.xButSelectAuto THEN
+            bMode := 30;
+        ELSIF hmi.xButSelectHoming THEN
+            bMode := 40;
+        END_IF;
+        
+(*Semi Mode*)
+    20:
+        IF hmi.xButSelectHand THEN
+            bMode := 10;
+        ELSIF hmi.xButSelectAuto THEN
+            bMode := 30;
+        ELSIF hmi.xButSelectHoming THEN
+            bMode := 40;
+        ELSIF hmi.xButStartSemi OR I_xStart AND I_xAutoReady THEN
+            bMode := 21;
+        END_IF;
+(*Semi Active*)
+    21:
+        IF NOT hmi.xButStartSemi AND NOT I_xStart THEN
+            bMode := 20;
+        END_IF;
+		
+(*Auto Mode*)
+    30:
+        IF hmi.xButSelectHand THEN
+            bMode := 10;
+        ELSIF hmi.xButSelectSemi THEN
+            bMode := 20;
+        ELSIF hmi.xButSelectHoming THEN
+            bMode := 40;
+        ELSIF RTRIG_Start.Q AND I_xAutoReady AND I_xInHomePos AND NOT I_xAutoHold THEN
+            bMode := 31;
+        END_IF;
+        
+(*Auto Active*)
+    31:
+        IF RTRIG_Stop.Q OR I_xAutoHold THEN
+            bMode := 32;
+        END_IF;
+		
+(*Auto Hold*)
+	32:
+		IF RTRIG_Start.Q AND NOT I_xAutoHold THEN
+			bMode:=31;
+			ELSIF RTRIG_Stop.Q THEN
+				bMode:=30;
+		END_IF
+		
+		
+        
+    40:
+        IF hmi.xButSelectHand THEN
+            bMode := 10;
+        ELSIF hmi.xButSelectSemi THEN
+            bMode := 20;
+        ELSIF hmi.xButSelectAuto THEN
+            bMode := 30;
+        ELSIF hmi.xButStartHoming OR I_xStart THEN
+            bMode := 41;
+        END_IF;
+        
+    41:
+        IF NOT hmi.xButStartHoming AND NOT I_xStart THEN
+            bMode := 40;
+        ELSIF I_xInHomePos THEN
+            bMode := 0;
+        END_IF;
+        
+END_CASE;
+
+                
+(*Hand mode to program*)
+OpMode.xHand := bMode = 10;
+(*semi and auto to program*)
+OpMode.xAuto := bMode >= 20 AND bMode < 40;
+OpMode.xAutoActive := (bMode = 21 OR bMode = 31);
+OpMode.xAutoHold := bMode = 32;
+(*homing to program*)
+OpMode.xHoming := bMode >= 40;
+OpMode.xHomingActive := bMode = 41;
+(*Ready for Auto*)
+OpMode.xAutoReady := I_xAutoReady AND OpMode.xAuto;
+(*In Home Position*)
+OpMode.xInHomePos := I_xInHomePos;
+
+
+
+(*Mode to HMI*)
+(*Hand*)
+hmi.xHandSelected := OpMode.xHand;
+(*Semi*)
+hmi.xSemiSelected := bMode = 20 OR bMode = 21;
+hmi.xSemiActive := bMode = 21;
+(*Auto*)
+hmi.xAutoSelected :=  bMode = 30 OR bMode = 31 OR bMode = 32;
+hmi.xAutoActive := bMode = 31;
+(*Homing*)
+hmi.xHomingSelected := OpMode.xHoming;
+hmi.xHomingActive := OpMode.xHomingActive;
+(*On Hold*)
+hmi.xAutoHold := OpMode.xAutoHold;
+(*Ready for Auto*)
+hmi.xAutoReady := OpMode.xAutoReady;
+(*In Home Position*)
+hmi.xInHomePosition := OpMode.xInHomePos;
