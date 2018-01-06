@@ -35,7 +35,7 @@ bOperationMode		:Byte;
 
 
 
-
+FB_OperationMode
 VAR_INPUT
 I_xStart	:BOOL;
 I_xStop		:Bool;
@@ -58,10 +58,6 @@ R_TRIG_Reset	:R_TRIG;
 RTRIG_Stop	:R_TRIG;
 RTRIG_Start 	:R_TRIG;
 END_VAR
-
-
-4.2.2.	Code
-zurück
 
 
 (*
