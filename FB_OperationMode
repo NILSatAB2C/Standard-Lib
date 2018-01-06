@@ -1,6 +1,44 @@
+UDT_OpMode
+xHand			:BOOL;
+xAuto			:Bool;
+xAutoActive		:Bool;
+xAutoReady		:Bool;
+xHoming			:Bool;
+xHomingActive		:Bool;
+xInHomePos		:Bool;
+xReset			:Bool;
+xAutoHold		:Bool;
+
+
+UDT_OpModeHMI
+xButSelectHand		:BOOL;
+xButSelectAuto		:Bool;
+xButStartAuto		:Bool;
+xButStopAuto		:Bool;
+xButSelectSemi		:Bool;
+xButStartSemi		:Bool;
+xButSelectHoming	:Bool;
+xButStartHoming		:Bool;
+xButReset		:Bool;
+xHandSelected		:Bool;
+xAutoSelected		:Bool;
+xAutoActive		:Bool;
+xAutoReady		:Bool;
+xAutoHold		:Bool;
+xSemiSelected		:Bool;
+xSemiActive		:Bool;
+xHomingSelected		:Bool;
+xHomingActive		:Bool;
+xInHomePosition		:Bool;
+bOperationMode		:Byte;
+
+
+
+
+
 VAR_INPUT
 I_xStart	:BOOL;
-I_xStop	:Bool;
+I_xStop		:Bool;
 I_xReset	:Bool;
 I_xKillModes	:Bool;
 I_xAutoHold	:Bool;
@@ -10,15 +48,15 @@ I_tResetTime	:TIME :=T#1S ;
 
 END_VAR
 VAR_OUTPUT
-	OpMode	:UDT_OpMode;
+OpMode		:UDT_OpMode;
 END_VAR
 VAR
 hmi		:UDT_OpModeHMI;
 bMode		:USInt;	
 TOF_Reset	:TOF;
-R_TRIG_Reset:R_TRIG;
+R_TRIG_Reset	:R_TRIG;
 RTRIG_Stop	:R_TRIG;
-RTRIG_Start :R_TRIG;
+RTRIG_Start 	:R_TRIG;
 END_VAR
 
 
